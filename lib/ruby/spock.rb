@@ -16,19 +16,33 @@ module Ruby
       s = Specification.new
       d = Definition.new(s)
       d.instance_eval(&definition)
+      errors = []
 
-      puts description
       columns, *examples = s.examples
       examples.each do |args|
         context = Struct.new(*columns).new(*args)
         context.extend(Assertions)
-        if context.instance_eval(&s.expectation)
+        asserting { context.instance_eval(&s.expectation) }
+        if @result
           print '.'
         else
           print 'F'
+          errors.push description: description.to_s, message: @message.to_s
         end
       end
+
       print "\n"
+      errors.each do |err|
+        puts err[:description]
+        puts err[:message]
+      end
+    end
+
+    def asserting(&blk)
+      ::PowerAssert.start(blk, assertion_method: __method__) do |pa|
+        @result = pa.yield
+        @message = pa.message_proc.()
+      end
     end
 
     class Specification
@@ -64,12 +78,10 @@ module Ruby
 end
 
 class Foo
-  extend  Ruby::Spock
+  extend Ruby::Spock
 
   spec 'maximum of two numbers', ->(*) {
-    expect {
-      assert { [a, b].max == c }
-    }
+    expect { [a, b].max == c }
     where [
       [ :a, :b, :c ],
       [  1,  3,  3 ], #=> .
