@@ -18,7 +18,7 @@ module Ruby
       d.instance_eval(&definition)
 
       puts description
-      columns, *examples = s.examples.dup
+      columns, *examples = s.examples
       examples.each do |args|
         context = Struct.new(*columns).new(*args)
         context.extend(Assertions)
@@ -72,9 +72,9 @@ class Foo
     }
     where [
       [ :a, :b, :c ],
-      [  1,  3,  3 ],
-      [  7,  4,  4 ],
-      [  0,  0,  0 ],
+      [  1,  3,  3 ], #=> .
+      [  7,  4,  4 ], #=> F
+      [  0,  0,  0 ], #=> .
     ]
   }
 
@@ -82,9 +82,9 @@ class Foo
     expect { [a, b].min == c }
     where [
       [ :a, :b, :c ],
-      [  1,  3,  1 ],
-      [  7,  4,  4 ],
-      [  0,  0,  1 ],
+      [  1,  3,  1 ], #=> .
+      [  7,  4,  4 ], #=> .
+      [  0,  0,  1 ], #=> F
     ]
   end
 end
