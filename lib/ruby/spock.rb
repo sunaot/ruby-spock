@@ -18,8 +18,11 @@ module Ruby
       d.instance_eval(&definition)
 
       puts description
-      s.examples.each do |args|
-        if s.expectation.call(*args)
+      columns, *examples = s.examples.dup
+      examples.each do |args|
+        context = Struct.new(*columns).new(*args)
+        context.extend(Assertions)
+        if context.instance_eval(&s.expectation)
           print '.'
         else
           print 'F'
@@ -32,16 +35,7 @@ module Ruby
       attr_accessor :expectation, :examples
     end
 
-    class Definition
-      attr_reader :spec
-      def initialize(specification)
-        @spec = specification
-      end
-
-      def expect(expectation)
-        spec.expectation = expectation
-      end
-
+    module Assertions
       def assert(&blk)
         ::PowerAssert.start(blk, assertion_method: __method__) do |pa|
           result = pa.yield
@@ -49,6 +43,17 @@ module Ruby
           puts message unless result
           result
         end
+      end
+    end
+
+    class Definition
+      attr_reader :spec
+      def initialize(specification)
+        @spec = specification
+      end
+
+      def expect(&expectation)
+        spec.expectation = expectation
       end
 
       def where(examples)
@@ -62,24 +67,24 @@ class Foo
   extend  Ruby::Spock
 
   spec 'maximum of two numbers', ->(*) {
-    expect ->(a, b, c) {
+    expect {
       assert { [a, b].max == c }
     }
     where [
-      # a | b | c
-      [ 1 , 3 , 3 ],
-      [ 7 , 4 , 4 ],
-      [ 0 , 0 , 0 ],
+      [ :a, :b, :c ],
+      [  1,  3,  3 ],
+      [  7,  4,  4 ],
+      [  0,  0,  0 ],
     ]
   }
 
   spec 'minimum of two numbers' do
-    expect ->(a, b, c) { [a, b].min == c }
+    expect { [a, b].min == c }
     where [
-      # a | b | c
-      [ 1 , 3 , 1 ],
-      [ 7 , 4 , 4 ],
-      [ 0 , 0 , 1 ],
+      [ :a, :b, :c ],
+      [  1,  3,  1 ],
+      [  7,  4,  4 ],
+      [  0,  0,  1 ],
     ]
   end
 end
